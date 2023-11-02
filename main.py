@@ -1,5 +1,5 @@
 import pygame
-import numpy as np
+import math
 
 # Initialize Pygame
 pygame.init()
@@ -16,42 +16,49 @@ centerX = window_width / 2
 centerY = window_height / 2
 
 # Set the size of the jack o lantern
-size = 200
+size = 500
+
+# Load the image
+image = pygame.image.load('jack-o-lantern.png')
+image = pygame.transform.scale(image, (size, size))
 
 # Set the colors of the jack o lantern
 orange = (255, 165, 0)
 black = (0, 0, 0)
 
-# Set up mouse variables
-mouseX = 0
-mouseY = 0
-
 def draw():
-    # Draw the jack o lantern
-    pygame.draw.circle(window, orange, (centerX, centerY), size)
+    # Clear the window
+    window.fill(black)
 
-    # draw the stem
-    pygame.draw.rect(window, (0x34, 0x62, 0x2f), (centerX - 10, centerY - size - 40, 20, 80))
-    pygame.draw.rect(window, (0x34, 0x62, 0x2f), (centerX - 10, centerY - size - 40, 80, 20))
+    window.blit(image, (centerX - size / 2, centerY - size / 2))
 
-    # draw the eyes
-    eyeHeight = size / 4 + 50
-    pygame.draw.polygon(window, black, ((centerX - size / 3, centerY - eyeHeight), (centerX - size / 3 - 40, centerY - eyeHeight + 70), (centerX - size / 3 + 40, centerY - eyeHeight + 70)))
-    pygame.draw.polygon(window, black, ((centerX + size / 3, centerY - eyeHeight), (centerX + size / 3 + 40, centerY - eyeHeight + 70), (centerX + size / 3 - 40, centerY - eyeHeight + 70)))
+    # Draw the eyes
+    eyeSize = 40
+    eyeColor = (255, 255, 255)
+    pupilSize = 20
+    pupilColor = (0, 0, 100)
 
-    # draw the pupils
-    pupilRadius = 20
-    x = centerX - size / 3 + mouseX / 5
-    pygame.draw.circle(window, (255, 255, 255), (x, centerY - eyeHeight / 2 + mouseY / 5), pupilRadius)
-    pygame.draw.circle(window, (255, 255, 255), (centerX + size / 3 + mouseX / 5, centerY - eyeHeight / 2 + mouseY / 5), pupilRadius)
+    mouseX, mouseY = pygame.mouse.get_pos()
+    def drawEye(eyeX, eyeY, mouseX, mouseY):
+        distX = mouseX - eyeX
+        distY = mouseY - eyeY
+        dist = min(math.sqrt((distX) ** 2 + (distY) ** 2), 20)
+        angle = math.atan2(distY, distX)
+        pupilX = eyeX + (math.cos(angle) * dist)
+        pupilY = eyeY + (math.sin(angle) * dist)
 
-    # draw the nose
-    pygame.draw.polygon(window, black, ((centerX, centerY - 30), (centerX - 25, centerY + 30), (centerX + 25, centerY + 30)))
+        pygame.draw.circle(window, pupilColor, (pupilX, pupilY), pupilSize)
+    
+    mouseX, mouseY = pygame.mouse.get_pos()
 
-    # draw the mouth
-    pygame.draw.rect(window, black, (centerX - 100, centerY + 50, 201, 20))
-    for i in range(0, 5):
-        pygame.draw.polygon(window, black, ((centerX - 100 + (i * 40), centerY + 70), (centerX - 100 + (i * 40) + 20, centerY + 110), (centerX - 100 + (i * 40) + 40, centerY + 70)))
+    # Left eye
+    pygame.draw.circle(window, eyeColor, (centerX - size / 5, centerY + 10), eyeSize)
+    drawEye(centerX - size / 5, centerY + 10, mouseX, mouseY)
+
+    # Right eye
+    pygame.draw.circle(window, eyeColor, (centerX + size / 5, centerY + 10), eyeSize)
+    drawEye(centerX + size / 5, centerY + 10, mouseX, mouseY)
+
 
 # Main game loop
 while True:
@@ -61,15 +68,7 @@ while True:
             pygame.quit()
             quit()
 
-        # Handle mouse movement
-        if event.type == pygame.MOUSEMOTION:
-            mouseX, mouseY = event.pos
-            print(mouseX, mouseY)
-
-        # Clear the screen
-        window.fill((0, 0, 0))
-
-        draw()
+    draw()
 
     # Update the display
     pygame.display.update()
