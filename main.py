@@ -1,5 +1,10 @@
 import pygame
 import math
+import cv2
+
+# Load the cascade for detecting faces and initialize the webcam
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+cap = cv2.VideoCapture(0)
 
 # Initialize Pygame
 pygame.init()
@@ -26,7 +31,7 @@ image = pygame.transform.scale(image, (size, size))
 orange = (255, 165, 0)
 black = (0, 0, 0)
 
-def draw():
+def draw(prevDistX=0, prevDistY=0):
     # Clear the window
     window.fill((0x10, 0x10, 0x13))
 
@@ -36,26 +41,48 @@ def draw():
     pupilSize = 20
     pupilColor = (0xfe, 0xff, 0)
 
-    mouseX, mouseY = pygame.mouse.get_pos()
-    def drawEye(eyeX, eyeY, mouseX, mouseY):
-        distX = mouseX - eyeX
-        distY = mouseY - eyeY
+    def drawEye(eyeX, eyeY, distX, distY):
+        # distX = mouseX - eyeX
+        # distY = mouseY - eyeY
         dist = min(math.sqrt((distX) ** 2 + (distY) ** 2), 20)
         angle = math.atan2(distY, distX)
         pupilX = eyeX + (math.cos(angle) * dist)
         pupilY = eyeY + (math.sin(angle) * dist)
 
         pygame.draw.circle(window, pupilColor, (pupilX, pupilY), pupilSize)
+
+    def findFace():
+        ret, frame = cap.read()
+        if not ret:
+            return None
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.5, 5)
+
+        try:
+            (x, y, w, h) = faces[0]
+        except IndexError:
+            return None
+        height, width, channels = frame.shape
+
+        distX = x + w / 2 - width / 2
+        distY = y + h / 2 - height / 2
+
+        return -distX, distY
     
-    mouseX, mouseY = pygame.mouse.get_pos()
+    dists = findFace()
+    if dists is None:
+        dists = (prevDistX, prevDistY)
+    distX, distY = dists
+    prevDistX, prevDistY = distX, distY
 
     # Left eye
     pygame.draw.circle(window, eyeColor, (centerX - size / 5, centerY + 10), eyeSize)
-    drawEye(centerX - size / 5, centerY + 10, mouseX, mouseY)
+    drawEye(centerX - size / 5, centerY + 10, distX, distY)
 
     # Right eye
     pygame.draw.circle(window, eyeColor, (centerX + size / 5, centerY + 10), eyeSize)
-    drawEye(centerX + size / 5, centerY + 10, mouseX, mouseY)
+    drawEye(centerX + size / 5, centerY + 10, distX, distY)
 
     window.blit(image, (centerX - size / 2, centerY - size / 2))
 
@@ -67,7 +94,8 @@ while True:
             pygame.quit()
             quit()
 
-    draw()
+    prevDistX, prevDistY = 0, 0
+    draw(prevDistX=prevDistX, prevDistY=prevDistY)
 
     # Update the display
     pygame.display.update()
