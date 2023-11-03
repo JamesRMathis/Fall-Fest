@@ -28,15 +28,13 @@ black = (0, 0, 0)
 
 def draw():
     # Clear the window
-    window.fill(black)
-
-    window.blit(image, (centerX - size / 2, centerY - size / 2))
+    window.fill((0x10, 0x10, 0x13))
 
     # Draw the eyes
-    eyeSize = 40
-    eyeColor = (255, 255, 255)
+    eyeSize = 60
+    eyeColor = (0x41, 0x1c, 0x09)
     pupilSize = 20
-    pupilColor = (0, 0, 100)
+    pupilColor = (0xfe, 0xff, 0)
 
     mouseX, mouseY = pygame.mouse.get_pos()
     def drawEye(eyeX, eyeY, mouseX, mouseY):
@@ -59,6 +57,7 @@ def draw():
     pygame.draw.circle(window, eyeColor, (centerX + size / 5, centerY + 10), eyeSize)
     drawEye(centerX + size / 5, centerY + 10, mouseX, mouseY)
 
+    window.blit(image, (centerX - size / 2, centerY - size / 2))
 
 # Main game loop
 while True:
