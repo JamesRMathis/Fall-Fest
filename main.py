@@ -24,14 +24,23 @@ centerY = window_height / 2
 size = 500
 
 # Load the image
-image = pygame.image.load('jack-o-lantern.png')
-image = pygame.transform.scale(image, (size, size))
+# mouthClosedImg = pygame.image.load('jack-o-lantern.png')
+# mouthClosedImg = pygame.transform.scale(mouthClosedImg, (size, size))
+
+# mouthOpenImg = pygame.image.load('jack-o-lantern-mouth-open.png')
+# mouthOpenImg = pygame.transform.scale(mouthOpenImg, (size, size))
+
+headImg = pygame.image.load('head.png')
+headImg = pygame.transform.scale(headImg, (size, 400))
+
+jawImg = pygame.image.load('jaw.png')
+jawImg = pygame.transform.scale(jawImg, (510, size / 2))
 
 # Set the colors of the jack o lantern
 orange = (255, 165, 0)
 black = (0, 0, 0)
 
-def draw(prevDistX=0, prevDistY=0):
+def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
     # Clear the window
     window.fill((0x10, 0x10, 0x13))
 
@@ -84,9 +93,15 @@ def draw(prevDistX=0, prevDistY=0):
     pygame.draw.circle(window, eyeColor, (centerX + size / 5, centerY + 10), eyeSize)
     drawEye(centerX + size / 5, centerY + 10, distX, distY)
 
-    window.blit(image, (centerX - size / 2, centerY - size / 2))
+    
+    window.blit(headImg , (255, 240))
+    window.blit(jawImg , (248, 490 + jawDeltaY))
+    # window.blit(jawImg , (248, 550 + jawDeltaY))
 
 # Main game loop
+jawDeltaY = 0
+opening = True
+talking = False
 while True:
     # Handle events
     for event in pygame.event.get():
@@ -95,7 +110,18 @@ while True:
             quit()
 
     prevDistX, prevDistY = 0, 0
-    draw(prevDistX=prevDistX, prevDistY=prevDistY)
+    draw(prevDistX=prevDistX, prevDistY=prevDistY, jawDeltaY=jawDeltaY)
 
+    if talking:
+        if jawDeltaY == 60:
+            opening = False
+        elif jawDeltaY == 0:
+            opening = True
+        
+        if opening:
+            jawDeltaY += 15
+        else:
+            jawDeltaY -= 15
+    
     # Update the display
     pygame.display.update()
