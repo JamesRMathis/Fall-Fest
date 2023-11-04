@@ -1,9 +1,11 @@
 import pygame
 import math
 import cv2
+import dlib
 
 # Load the cascade for detecting faces and initialize the webcam
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+# face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+detector = dlib.get_frontal_face_detector()
 cap = cv2.VideoCapture(0)
 
 # Initialize Pygame
@@ -66,10 +68,12 @@ def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
             return None
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, 1.5, 5)
+        # gray = dlib.load_rgb_image(frame)
+        faces = detector(gray)
 
         try:
-            (x, y, w, h) = faces[0]
+            face = faces[0]
+            x, y, w, h = face.left(), face.top(), face.width(), face.height()
         except IndexError:
             return None
         height, width, channels = frame.shape
@@ -101,7 +105,7 @@ def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
 # Main game loop
 jawDeltaY = 0
 opening = True
-talking = False
+talking = True
 while True:
     # Handle events
     for event in pygame.event.get():
