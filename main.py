@@ -40,7 +40,7 @@ jawImg = pygame.transform.scale(jawImg, (510, size / 2))
 orange = (255, 165, 0)
 black = (0, 0, 0)
 
-def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
+def draw(prevDistX=0, prevDistY=0, faceX=0, faceY=0, jawDeltaY=0):
     # Clear the window
     window.fill((0x10, 0x10, 0x13))
 
@@ -53,10 +53,9 @@ def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
     def drawEye(eyeX, eyeY, distX, distY):
         # distX = mouseX - eyeX
         # distY = mouseY - eyeY
-        dist = min(math.sqrt((distX) ** 2 + (distY) ** 2), 20)
-        angle = math.atan2(distY, distX)
-        pupilX = eyeX + (math.cos(angle) * dist)
-        pupilY = eyeY + (math.sin(angle) * dist)
+        
+        pupilX = eyeX + max(min(distX * pupilMovementScale, 20), -20)
+        pupilY = eyeY + max(min(distY * pupilMovementScale, 20), -20)
 
         pygame.draw.circle(window, pupilColor, (pupilX, pupilY), pupilSize)
 
@@ -78,30 +77,41 @@ def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
         distY = y + h / 2 - height / 2
 
         return -distX, distY
-    
-    dists = findFace()
-    if dists is None:
-        dists = (prevDistX, prevDistY)
-    distX, distY = dists
-    prevDistX, prevDistY = distX, distY
+     
+    faceDists = findFace()
+    if faceDists is None:
+        faceDists = (0, 0)
+
+    faceX, faceY = faceDists
 
     # Left eye
     pygame.draw.circle(window, eyeColor, (centerX - size / 5, centerY + 10), eyeSize)
-    drawEye(centerX - size / 5, centerY + 10, distX, distY)
+    drawEye(centerX - size / 5, centerY + 10, prevDistX, prevDistY)
 
     # Right eye
     pygame.draw.circle(window, eyeColor, (centerX + size / 5, centerY + 10), eyeSize)
-    drawEye(centerX + size / 5, centerY + 10, distX, distY)
+    drawEye(centerX + size / 5, centerY + 10, prevDistX, prevDistY)
 
     
     window.blit(headImg , (255, 240))
     window.blit(jawImg , (248, 490 + jawDeltaY))
     # window.blit(jawImg , (248, 550 + jawDeltaY))
 
+    return prevDistX, prevDistY, faceX, faceY
+
 # Main game loop
 jawDeltaY = 0
 opening = True
 talking = False
+
+pupilMovementScale = 0.20 # Speed of the pupil movement
+pupilFollowDeadzone = 2
+pupilReturnDeadzone = 5
+pupilMoveStep = 5 # How much the pupil moves every frame
+
+prevDistX, prevDistY = 0, 0
+faceX, faceY = 0, 0
+
 while True:
     # Handle events
     for event in pygame.event.get():
@@ -109,8 +119,21 @@ while True:
             pygame.quit()
             quit()
 
-    prevDistX, prevDistY = 0, 0
-    draw(prevDistX=prevDistX, prevDistY=prevDistY, jawDeltaY=jawDeltaY)
+    # If the eyes outside of the ceneter deadzone and there is no face, move them back by a step every frame then lock them at 0
+    if faceX == 0 and faceY == 0:
+        if abs(prevDistX) > pupilReturnDeadzone: prevDistX += pupilMoveStep if prevDistX < 0 else -pupilMoveStep
+        else: prevDistX = 0
+        
+        if abs(prevDistY) > pupilReturnDeadzone: prevDistY += pupilMoveStep if prevDistY < 0 else -pupilMoveStep
+        else: prevDistY = 0
+
+    # If the eyes are currently not within the deadzone around the face, move them towards the face
+    if prevDistX < faceX - pupilFollowDeadzone: prevDistX += pupilMoveStep 
+    elif prevDistX > faceX + pupilFollowDeadzone: prevDistX -= pupilMoveStep
+    if prevDistY < faceY - pupilFollowDeadzone: prevDistY += pupilMoveStep 
+    elif prevDistY > faceY + pupilFollowDeadzone: prevDistY -= pupilMoveStep
+
+    prevDistX, prevDistY, faceX, faceY = draw(prevDistX=prevDistX, prevDistY=prevDistY, faceX=faceX, faceY=faceY, jawDeltaY=jawDeltaY)
 
     if talking:
         if jawDeltaY == 60:
