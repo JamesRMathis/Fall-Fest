@@ -1,6 +1,15 @@
 import pygame
 import math
 import cv2
+import os
+import openai
+import io
+import threading
+from dotenv import load_dotenv
+from gtts import gTTS
+
+load_dotenv()
+openai.api_key = os.getenv('GPT_KEY')
 
 # Load the cascade for detecting faces and initialize the webcam
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -36,11 +45,47 @@ headImg = pygame.transform.scale(headImg, (size, 400))
 jawImg = pygame.image.load('jaw.png')
 jawImg = pygame.transform.scale(jawImg, (510, size / 2))
 
-# Set the colors of the jack o lantern
-orange = (255, 165, 0)
-black = (0, 0, 0)
+# Global variables
+talking = False
+prevDistX, prevDistY = 0, 0
+jawDeltaY = 0
 
-def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
+def playAudio(audio_data):
+    # Load the audio data into pygame mixer
+    pygame.mixer.music.load(audio_data)
+
+    # Play the audio
+    pygame.mixer.music.play()
+
+    while pygame.mixer.music.get_busy():
+        pass
+
+    global talking
+    talking = False
+
+def talk():
+    global talking
+    if talking:
+        return
+
+    talking = True
+
+    prompt = 'Give me a simple riddle to solve without telling me the answer.'
+    # response = openai.Completion.create(
+    #     engine="davinci",
+    #     prompt=prompt,
+    #     max_tokens=50
+    # )
+
+    tts = gTTS(text=prompt)
+    audio_data = io.BytesIO()
+    tts.write_to_fp(audio_data)
+    audio_data.seek(0)
+
+    audioThread = threading.Thread(target=playAudio, args=(audio_data,))
+    audioThread.start()
+
+def draw():
     # Clear the window
     window.fill((0x10, 0x10, 0x13))
 
@@ -79,11 +124,17 @@ def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
 
         return -distX, distY
     
+    global prevDistX, prevDistY, jawDeltaY
+
     dists = findFace()
     if dists is None:
         dists = (prevDistX, prevDistY)
     distX, distY = dists
+    new_face_detected = abs(distX - prevDistX) > 10 or abs(distY - prevDistY) > 10
     prevDistX, prevDistY = distX, distY
+
+    if new_face_detected:
+        talk()
 
     # Left eye
     pygame.draw.circle(window, eyeColor, (centerX - size / 5, centerY + 10), eyeSize)
@@ -99,9 +150,7 @@ def draw(prevDistX=0, prevDistY=0, jawDeltaY=0):
     # window.blit(jawImg , (248, 550 + jawDeltaY))
 
 # Main game loop
-jawDeltaY = 0
 opening = True
-talking = False
 while True:
     # Handle events
     for event in pygame.event.get():
@@ -109,8 +158,7 @@ while True:
             pygame.quit()
             quit()
 
-    prevDistX, prevDistY = 0, 0
-    draw(prevDistX=prevDistX, prevDistY=prevDistY, jawDeltaY=jawDeltaY)
+    draw()
 
     if talking:
         if jawDeltaY == 60:
